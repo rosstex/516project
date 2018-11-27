@@ -17,9 +17,12 @@ class FOLSolver:
 
     def run(self):
         nodes = self.G.nodes
+        num_nodes = self.G.number_of_nodes()
         for node1 in nodes:
+            self.solver.add(0 <= Int(node1) <= num_nodes)
             for node2 in nodes:
                 self.solver.add(Bool("{}_{}".format(node1, node2)) == self.r(node1, node2))
+
         print(self.solver)
 
 
