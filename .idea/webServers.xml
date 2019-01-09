@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="4f52a5bf-d680-431d-a53b-675c2534fa61" name="Courselab" url="http://courselab.cs.princeton.edu">
+        <fileTransfer host="courselab.cs.princeton.edu" port="22" rootFolder="/u/rapt" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
