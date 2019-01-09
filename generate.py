@@ -26,14 +26,62 @@ class Formula:
         self.clauses.append((var_order[var1], var_order[var2], neg))
 
     # Part 2b: Evaluation
-    def generate_z3_formula(self, choices, neg):
+    def add_z3_int_int(self, x, y, val, graph):
+        return [graph[x][y] == val]
+
+    def add_z3_var_int(self, x, y, val, graph):
+        x_values = []
+        G = len(graph)
+        for i in range(G):
+            if (graph[i][y] != val):
+                x_values.append(x != i)
+        return x_values
+
+    def add_z3_int_var(self, x, y, val, graph):
+        y_values = []
+        G = len(graph)
+        for i in range(G):
+            if (graph[x][i] != val):
+                y_values.append(y != i)
+        return y_values
+
+    def add_z3_var_var(self, x, y, val, graph):
+        xy_values = []
+        G = len(graph)
+        for i in range(G):
+            for j in range(G):
+                if (graph[i][j] != val):
+                    xy_values.append(Or(x != i, y!= j))
+        return xy_values        
+    
+    def generate_z3_formula(self, choices, graph, neg):
         z3_clauses = []
-        for choice in choices:
-            #TODO
-            if neg:
-                pass
+        for clause in clauses:
+            the_clauses = []
+            
+            x = clause[0]
+            y = clause[1]
+            val = clause[2]
+
+            if type(choices[x]) is int:
+                valx = choices[x]
+                if type(choices[y]) is int:
+                    valy = choices[y]
+                    the_clauses = add_z3_int_int(valx, valy, val, graph)
+                else:
+                    vary = choices[y]
+                    the_clauses = add_z3_int_var(valx, vary, val, graph)
             else:
-                pass
+                varx = choices[x]
+                if type(choices[y]) is int:
+                    valy = choices[y]
+                    the_clauses = add_z3_var_int(varx, valy, val, graph)
+                else:
+                    vary = choices[y]
+                    the_clauses = add_z3_var_var(varx, vary, val, graph)
+
+            z3_clauses.append(the_clauses)
+                 
         if neg:
             formula = Or(z3_clauses)
         else:
@@ -41,18 +89,13 @@ class Formula:
 
         return formula
 
-
-
-
-
-
+    
 # Part 2a: Parse input
 if __name__ == "__main__":
     # str = input()
     str = "Fx.Ey.Fz -xy,yz"
 
     vars_raw, clauses_raw = str.split(" ")
-
 
     # generate var order
     var_list = vars_raw.split(".")
@@ -84,13 +127,6 @@ if __name__ == "__main__":
 
 
 # Fx.Ey.Fz -xy,yz
-
-
-
-
-
-
-
 
 
 
