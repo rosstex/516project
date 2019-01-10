@@ -102,6 +102,11 @@ class Strategies:
         self.SAT_GRAPH.add_node("START")
         self.UNSAT_GRAPH.add_node("START")
 
+    # TODO
+    def get_fresh_variable(level):
+        num_level = level_map[level]
+        return Int(level + num_level)
+
     def add_info(self, choices, to_SAT):
         if to_SAT:
             graph = self.SAT_GRAPH
@@ -111,8 +116,59 @@ class Strategies:
             fill_levels = self.formula.SAT_vars
 
         #TODO: add path
+        len_choices = len(choices)
         for choice in choices:
-            pass
+            index = 0;
+            current_node = "START"
+            previous_node = "START"
+
+            current_level = -1;
+            next_level = 0;
+
+            while (index < len_choices):
+                next_level = fill_levels[index]
+                next_choice = choice[index]
+                while (current_level < next_level - 1):
+                    previous_node = current_node
+                    current_node = (graph.neighbors(current_node))[0]
+                    current_level += 1
+                previous_node = current_node
+                nodes = graph.neighbors(current_node)
+                found = 0
+                for node in nodes:
+                    if (node == next_choice):
+                        found = 1
+                        current_node = node
+                if (found != 1):
+                    break
+                current_level += 1
+                index += 1
+            
+               # Add path starting at previous node down graph
+               level = current_level - 1
+               next_level = current_level
+               node = previous_node
+
+               # Remember next_choice and index
+               for (level < self.formula.n):
+                   if (level == next_level - 1):
+                       graph.add_node(choices[index])
+                       graph.add_edge(node, choices[index])
+                       index += 1
+                       if (index < len_choices):
+                           next_level = choices[index]
+                           node = choices[index]
+                           level += 1
+                       else:
+                           next_level = -1
+                           node = choices[index]
+                           level += 1
+                   else:
+                       fresh_variable = get_fresh_variable(level + 1)
+                       graph.add_node(fresh_variable)
+                       graph.add_edge(node, fresh_variable)
+                       level += 1                    
+                   
 
     #TODO: generate choices list from graph
     def get_choices(self, from_SAT):
