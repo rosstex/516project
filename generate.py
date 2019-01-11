@@ -97,15 +97,15 @@ class Strategies:
         self.formula = formula
         self.SAT_GRAPH = nx.DiGraph()
         self.UNSAT_GRAPH = nx.DiGraph()
-        level_map = {}  # var index -> # of choices (x_1, x_2, ...)
+        self.level_map = {}  # var index -> # of choices (x_1, x_2, ...)
 
         self.SAT_GRAPH.add_node("START")
         self.UNSAT_GRAPH.add_node("START")
 
     # TODO
-    def get_fresh_variable(level):
-        num_level = level_map[level]
-        return Int(level + num_level)
+    def get_fresh_variable(self, level):
+        num_level = self.level_map[level]
+        return Int(str(level) + "_" + str(num_level))
 
     def add_info(self, choices, to_SAT):
         if to_SAT:
@@ -118,17 +118,17 @@ class Strategies:
         #TODO: add path
         len_choices = len(choices)
         for choice in choices:
-            index = 0;
+            index = 0
             current_node = "START"
             previous_node = "START"
 
-            current_level = -1;
-            next_level = 0;
+            current_level = -1
+            next_level = 0
 
-            while (index < len_choices):
+            while index < len(choice):
                 next_level = fill_levels[index]
                 next_choice = choice[index]
-                while (current_level < next_level - 1):
+                while current_level < next_level - 1:
                     previous_node = current_node
                     current_node = (graph.neighbors(current_node))[0]
                     current_level += 1
@@ -136,43 +136,49 @@ class Strategies:
                 nodes = graph.neighbors(current_node)
                 found = 0
                 for node in nodes:
-                    if (node == next_choice):
+                    if node == next_choice:
                         found = 1
                         current_node = node
-                if (found != 1):
+                if found != 1:
                     break
                 current_level += 1
                 index += 1
             
-               # Add path starting at previous node down graph
-               level = current_level - 1
-               next_level = current_level
-               node = previous_node
+                # Add path starting at previous node down graph
+                level = current_level - 1
+                next_level = current_level
+                node = previous_node
 
-               # Remember next_choice and index
-               for (level < self.formula.n):
-                   if (level == next_level - 1):
-                       graph.add_node(choices[index])
-                       graph.add_edge(node, choices[index])
-                       index += 1
-                       if (index < len_choices):
-                           next_level = choices[index]
-                           node = choices[index]
-                           level += 1
-                       else:
-                           next_level = -1
-                           node = choices[index]
-                           level += 1
-                   else:
-                       fresh_variable = get_fresh_variable(level + 1)
-                       graph.add_node(fresh_variable)
-                       graph.add_edge(node, fresh_variable)
-                       level += 1                    
+                # Remember next_choice and index
+                while level < self.formula.n:
+                    if level == next_level - 1:
+                        graph.add_node(choices[index])
+                        graph.add_edge(node, choices[index])
+                        index += 1
+                        if index < len_choices:
+                            next_level = choices[index]
+                            node = choices[index]
+                            level += 1
+                        else:
+                            next_level = -1
+                            node = choices[index]
+                            level += 1
+                    else:
+                        fresh_variable = self.get_fresh_variable(level + 1)
+                        graph.add_node(fresh_variable)
+                        graph.add_edge(node, fresh_variable)
+                        level += 1
                    
 
     #TODO: generate choices list from graph
-    def get_choices(self, from_SAT):
-        pass
+    def get_choices(self, from_graph):
+        choices = []
+        for node in from_graph:
+            if from_graph.out_degree(node) == 0:
+                leaf_path = nx.all_simple_paths(from_graph, "START", node)[0]
+                leaf_path = [node for node in leaf_path if type(node["value"]) is int]
+                choices.append(leaf_path)
+        return choices
 
 g = nx.DiGraph()
 g.add_node("START")
