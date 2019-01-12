@@ -3,8 +3,10 @@ import random
 from python.z3 import *
 from collections import OrderedDict, defaultdict
 import sys
+import numpy as np
 
-SAT = True
+SAT_WINS = 1
+UNSAT_WINS = 2
 
 class Formula:
     # Part 1+2a: State
@@ -247,8 +249,21 @@ class FOLSolver:
         self.strategies = None
 
         self.parse_input()
-        print(self.play_a_game())
+        self.play_games()
 
+    def play_games(self):
+        for n in range(10):
+            shift = np.arange(n * n).reshape(n, n)
+            for j in range(2 ** (n * n)):
+                self.matrix = j >> shift & 1
+                result = self.play_a_game()
+                if result == SAT_WINS:
+                    print("SAT wins! :)")
+                    print("Graph:\n{}".format(self.matrix))
+                else:
+                    continue
+        print("No graph found. UNSAT is the definitive winner :("
+              "also graphs larger than 10 nodes do not exist ask your local scientist for more details")
 
     def play_a_game(self):
         """
@@ -275,7 +290,7 @@ class FOLSolver:
         solver.add(z3_formula)
 
         if solver.check() == unsat:
-            return "UNSAT wins"
+            return UNSAT_WINS
         else:
             SAT_choices = []
             UNSAT_choices = []
@@ -298,7 +313,7 @@ class FOLSolver:
                     solver = Solver()
                     solver.add(z3_formula)
                     if solver.check() == unsat:
-                        return "UNSAT wins"
+                        return UNSAT_WINS
                     else:
                         new_choices_vals = []
                         model = solver.model()
@@ -330,7 +345,7 @@ class FOLSolver:
                     solver = Solver()
                     solver.add(z3_formula)
                     if solver.check() == unsat:
-                        return "SAT wins"
+                        return SAT_WINS
                     else:
                         new_choices_vals = []
                         model = solver.model()
@@ -397,8 +412,5 @@ class FOLSolver:
             var1 = clause[0 + neg]
             var2 = clause[1 + neg]
             self.formula.add_clause(var1, var2, 1 - neg)
-
-        self.matrix = [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 1], [0, 0, 0, 0, 0]]
-        self.matrix_size = len(self.matrix)
 
 FOLSolver()
