@@ -33,6 +33,8 @@ class Formula:
         for i in range(G):
             if matrix[i][y] == val:
                 x_values.append(x == i)
+        if len(x_values) == 0:
+            return False
         return Or(x_values)
 
     def add_z3_int_var(self, x, y, val, matrix):
@@ -41,6 +43,8 @@ class Formula:
         for i in range(G):
             if matrix[x][i] == val:
                 y_values.append(y == i)
+        if len(y_values) == 0:
+            return False
         return Or(y_values)
 
     def add_z3_var_var(self, x, y, val, matrix):
@@ -50,6 +54,8 @@ class Formula:
             for j in range(G):
                 if matrix[i][j] == val:
                     xy_values.append(And(x == i, y == j))
+        if len(xy_values) == 0:
+            return False
         return Or(xy_values)
     
     def generate_z3_formula(self, choices, matrix, neg):
@@ -82,6 +88,8 @@ class Formula:
 
             z3_clauses.append(the_clauses)
 
+        if len(z3_clauses) == 0:
+            return False
         if neg:
             formula = Or(z3_clauses)
         else:
@@ -118,6 +126,7 @@ class Strategies:
         return Int(str(level) + "_" + str(num_level))
 
     def add_info(self, choices, to_SAT):
+        # adding variables?
         if len(choices) == 0 or len(choices[0]) == 0:
             return
 
@@ -138,6 +147,8 @@ class Strategies:
             current_level = -1
             next_level = 0
 
+            done = 0
+
             while index < len(choice):
                 next_level = fill_levels[index]
                 next_choice = choice[index]
@@ -146,7 +157,7 @@ class Strategies:
                     current_level = 0
                     break
                 if len(list(graph.neighbors("START"))) == 0:
-                    current_level = 0
+                    current_level = -1
                     break
                 while current_level < next_level - 1:
                     previous_node = current_node
@@ -164,9 +175,13 @@ class Strategies:
                     break
                 current_level += 1
                 index += 1
-            
+                if index == len(fill_levels):
+                    done = 1
+
+            if done:
+                continue
             # Add path starting at previous node down graph
-            level = current_level - 1
+            level = current_level
             # next_level = current_level
             node = previous_node
 
@@ -274,7 +289,7 @@ class FOLSolver:
             self.strategies.add_info([SAT_choices], False)
             self.strategies.add_info([UNSAT_choices], True)
 
-            turn = 0
+            turn = 1
 
             while True:
                 if turn == 0: # SAT
@@ -291,8 +306,21 @@ class FOLSolver:
                         for choice in choices_vars:
                             new_choice_vals = []
                             for var in choice:
-                                new_choice_vals.append(model[var].as_long())
+                                if model[var] == None:
+                                    new_choice_vals.append(0)
+                                else:
+                                    new_choice_vals.append(model[var].as_long())
                             new_choices_vals.append(new_choice_vals)
+
+                        final_choices_vals = []
+                        for choice1 in new_choices_vals:
+                            found = 0
+                            for choice2 in new_choices_vals:
+                                if choice2 == choice1:
+                                    found = 1
+                                    break
+                            if not found or choice1 not in final_choices_vals:
+                                final_choices_vals.append(choice1)
 
                         self.strategies.add_info(new_choices_vals, False)
 
@@ -310,10 +338,25 @@ class FOLSolver:
                         for choice in choices_vars:
                             new_choice_vals = []
                             for var in choice:
-                                new_choice_vals.append(model[var].as_long())
+                                if model[var] == None:
+                                    new_choice_vals.append(0)
+                                else:
+                                    new_choice_vals.append(model[var].as_long())
                             new_choices_vals.append(new_choice_vals)
 
-                        self.strategies.add_info(new_choices_vals, True)
+                        final_choices_vals = []
+                        for choice1 in new_choices_vals:
+                            found = 0
+                            for choice2 in new_choices_vals:
+                                if choice2 == choice1:
+                                    found = 1
+                                    break
+                            if not found or choice1 not in final_choices_vals:
+                                final_choices_vals.append(choice1)
+
+
+
+                        self.strategies.add_info(final_choices_vals, True)
 
                 turn = 1 - turn
                 print(turn)
@@ -321,7 +364,7 @@ class FOLSolver:
 
     def parse_input(self):
         # str = input()
-        str = "Ex.Fy.Ez -xy,yz"
+        str = "Ex.Fy.Ez.Fw xy,-yz,zw"
 
         vars_raw, clauses_raw = str.split(" ")
 
@@ -355,7 +398,7 @@ class FOLSolver:
             var2 = clause[1 + neg]
             self.formula.add_clause(var1, var2, 1 - neg)
 
-        self.matrix = [[0, 1, 0], [1, 1, 1], [1, 0, 0]]
-        self.matrix_size = 3
+        self.matrix = [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 1], [0, 0, 0, 0, 0]]
+        self.matrix_size = len(self.matrix)
 
 FOLSolver()
