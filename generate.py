@@ -244,7 +244,6 @@ class FOLSolver:
         self.solver = Solver()
         self.const_dict = {}
         self.matrix = []
-        self.matrix_size = 0
         self.formula = None
         self.strategies = None
 
