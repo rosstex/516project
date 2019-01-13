@@ -97,6 +97,7 @@ class Formula:
         else:
             formula = And(z3_clauses)
 
+
         return formula
 
     def generate_entire_z3_formula(self, choices, matrix, neg):
@@ -105,7 +106,16 @@ class Formula:
             z3_clauses = self.generate_z3_formula(choice, matrix, neg)
             all_clauses.append(z3_clauses)
 
-        return And(all_clauses)
+        F = And(all_clauses)
+
+        graph_clauses = []
+        for choice in choices:
+            for x in choice:
+                if not type(x) is int:
+                    graph_clauses.append(And(0 <= x, x < len(matrix)))
+        G = And(graph_clauses)
+
+        return And(F, G)
 
 # Fx.Ey.Fz -xy,yz
 
