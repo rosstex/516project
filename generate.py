@@ -261,7 +261,7 @@ class FOLSolver:
         self.play_games()
 
     def play_games(self):
-        for n in range(10):
+        for n in range(1, 11):
             shift = np.arange(n * n).reshape(n, n)
             for j in range(2 ** (n * n)):
                 self.matrix = j >> shift & 1
