@@ -412,12 +412,9 @@ class FOLSolver:
 
 
     def parse_input(self):
-        # str = input()
-        # formula_str = "Fx.Ey xy" #SAT
-        # formula_str = "Ex.Fy xy" #UNSAT
-        # formula_str = "Ex.Ey.Ez -xy,yz"
-        formula_str = "Ex.Ey.Ez.Fa.Eb.Ec.Ed.Fe.Ef xy,-yz,cy,-fx,cd" # UNSAT
-
+        print("Format: `Qa.Qb.Qc ab,-bc` where Q={E,F}, ab == edge(a, b), -bc == not edge(b, c).")
+        formula_str = input()
+        # formula_str = "Ex.Ey.Ez.Ec.Ed.Ef xy,-yz,cy,-fx,cd" # UNSAT
         vars_raw, clauses_raw = formula_str.split(" ")
 
         # generate var order
@@ -459,6 +456,6 @@ class FOLSolver:
         print(self.matrix)
 
 start = time()
-print(start)
+# print(start)
 FOLSolver(generate_graph=False)
-print(time() - start)
+print("{} seconds".format(time() - start))
