@@ -268,13 +268,6 @@ class Strategies:
                     choices.append(leaf_path)
         return choices
 
-g = nx.DiGraph()
-g.add_node("START")
-g.add_node("NEXT")
-g.add_edge("START", "NEXT")
-for n in g.neighbors("START"):
-    print(n)
-
 class FOLSolver:
     def __init__(self, generate_graph=False):
         self.solver = Solver()
