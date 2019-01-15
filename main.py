@@ -4,6 +4,7 @@ from python.z3 import *
 from collections import OrderedDict, defaultdict
 import sys
 import numpy as np
+from time import time
 
 SAT_WINS = 1
 UNSAT_WINS = 2
@@ -59,11 +60,11 @@ class Formula:
         if len(xy_values) == 0:
             return False
         return Or(xy_values)
-    
+
     def generate_z3_formula(self, choices, matrix, neg):
         z3_clauses = []
         for clause in self.clauses:
-            
+
             x = clause[0]
             y = clause[1]
             val = clause[2]
@@ -139,7 +140,7 @@ class Strategies:
 
     def add_info(self, choices, to_SAT):
         # adding variables?
-        if len(choices) == 0 or len(choices[0]) == 0:
+        if len(choices) == 0:
             return
 
         if to_SAT:
@@ -149,8 +150,32 @@ class Strategies:
             graph = self.UNSAT_GRAPH
             fill_levels = self.formula.SAT_vars
 
+
+        if len(choices[0]) == 0:
+            # reuse variables below
+            if len(list(graph.neighbors("START"))) > 0:
+                return
+            else:
+                level = -1
+                node = "START"
+                while level < self.formula.n - 1:
+                    next_node_num = self.unique_num
+
+                    fresh_variable = self.get_fresh_variable(level + 1)
+                    graph.add_node(next_node_num, value=fresh_variable)
+                    if level == -1:
+                        graph.add_edge("START", next_node_num)
+                    else:
+                        graph.add_edge(node, next_node_num)
+                    level += 1
+                    node = next_node_num
+                    self.unique_num += 1
+            return
+
+
+
+
         #TODO: add path
-        len_choices = len(choices)
         for choice in choices:
             index = 0
             current_node = "START"
@@ -172,7 +197,6 @@ class Strategies:
                     current_level = -1
                     break
                 while current_level < next_level - 1:
-                    previous_node = current_node
                     current_node = (list(graph.neighbors(current_node)))[0]
                     # if none, add vars to get there
                     current_level += 1
@@ -189,7 +213,6 @@ class Strategies:
                 index += 1
                 if index == len(fill_levels):
                     done = 1
-
             if done:
                 continue
             # Add path starting at previous node down graph
@@ -200,6 +223,9 @@ class Strategies:
             if level < -1:
                 level = -1
                 next_level = 0
+
+            if len(choice) == 0:
+                next_level = -1
 
             # Remember next_choice and index
             while level < self.formula.n - 1:
@@ -229,7 +255,7 @@ class Strategies:
                     level += 1
                     node = next_node_num
                 self.unique_num += 1
-                   
+
 
     #TODO: generate choices list from graph
     def get_choices(self, from_graph):
@@ -250,26 +276,32 @@ for n in g.neighbors("START"):
     print(n)
 
 class FOLSolver:
-    def __init__(self):
+    def __init__(self, generate_graph=False):
         self.solver = Solver()
-        self.const_dict = {}
         self.matrix = []
         self.formula = None
         self.strategies = None
 
         self.parse_input()
-        self.play_games()
+        if generate_graph:
+            self.play_games()
+        else:
+            self.play_a_game()
 
     def play_games(self):
         for n in range(1, 11):
             shift = np.arange(n * n).reshape(n, n)
             for j in range(2 ** (n * n)):
                 self.matrix = j >> shift & 1
+                self.matrix = np.ndarray.tolist(self.matrix)
+                print(self.matrix)
                 result = self.play_a_game()
                 if result == SAT_WINS:
                     print("SAT wins! :)")
                     print("Graph:\n{}".format(self.matrix))
+                    return
                 else:
+                    self.strategies = Strategies(self.formula)
                     continue
         print("No graph found. UNSAT is the definitive winner :("
               "also graphs larger than 10 nodes do not exist ask your local scientist for more details")
@@ -299,6 +331,7 @@ class FOLSolver:
         solver.add(z3_formula)
 
         if solver.check() == unsat:
+            print("UNSAT WINS")
             return UNSAT_WINS
         else:
             SAT_choices = []
@@ -309,7 +342,6 @@ class FOLSolver:
                     SAT_choices.append(model[Int(str(i))].as_long())
                 else:
                     UNSAT_choices.append(model[Int(str(i))].as_long())
-
             self.strategies.add_info([SAT_choices], False)
             self.strategies.add_info([UNSAT_choices], True)
 
@@ -322,6 +354,7 @@ class FOLSolver:
                     solver = Solver()
                     solver.add(z3_formula)
                     if solver.check() == unsat:
+                        print("UNSAT WINS")
                         return UNSAT_WINS
                     else:
                         new_choices_vals = []
@@ -354,6 +387,7 @@ class FOLSolver:
                     solver = Solver()
                     solver.add(z3_formula)
                     if solver.check() == unsat:
+                        print("SAT WINS")
                         return SAT_WINS
                     else:
                         new_choices_vals = []
@@ -378,8 +412,6 @@ class FOLSolver:
                             if not found or choice1 not in final_choices_vals:
                                 final_choices_vals.append(choice1)
 
-
-
                         self.strategies.add_info(final_choices_vals, True)
 
                 turn = 1 - turn
@@ -388,9 +420,12 @@ class FOLSolver:
 
     def parse_input(self):
         # str = input()
-        str = "Ex.Fy.Ez.Fw xy,-yz,zw"
+        # formula_str = "Fx.Ey xy" #SAT
+        # formula_str = "Ex.Fy xy" #UNSAT
+        # formula_str = "Ex.Ey.Ez -xy,yz"
+        formula_str = "Ex.Ey.Ez.Fa.Eb.Ec.Ed.Fe.Ef xy,-yz,cy,-fx,cd" # UNSAT
 
-        vars_raw, clauses_raw = str.split(" ")
+        vars_raw, clauses_raw = formula_str.split(" ")
 
         # generate var order
         var_list = vars_raw.split(".")
@@ -422,4 +457,15 @@ class FOLSolver:
             var2 = clause[1 + neg]
             self.formula.add_clause(var1, var2, 1 - neg)
 
-FOLSolver()
+        # self.matrix = [[0, 1, 1, 1, 1], [0, 0, 1, 0, 0], [0, 0, 0, 1, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 0]]
+        # self.matrix = [[0, 1, 0], [1, 1, 1], [1, 0, 0]]
+        # self.matrix = [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 1], [0, 0, 0, 0, 0]]
+        n = 100
+        self.matrix = np.random.randint(0, 2, (n, n)).tolist()
+        # self.matrix = [[1, 0], [0, 0]]
+        print(self.matrix)
+
+start = time()
+print(start)
+FOLSolver(generate_graph=False)
+print(time() - start)
